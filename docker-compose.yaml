@@ -1,0 +1,19 @@
+services:
+  strava-statistics:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: strava-statistics
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./:/app
+    restart: unless-stopped
+    networks:
+      - strava-statistics
+    env_file:
+      - .env
+
+networks:
+  strava-statistics:
+    name: strava-statistics
