@@ -20,7 +20,7 @@ Configure as seguintes variáveis de ambiente antes de executar o container:
 - `STRAVA_CLIENT_ID`: Seu ID de cliente Strava
 - `STRAVA_CLIENT_SECRET`: Seu segredo de cliente Strava
 
-Você pode configurá-las diretamente no arquivo `.env` na raiz do projeto.
+Você pode configurá-las criando um arquivo `.env` na raiz do projeto.
 
 Para gerar essas variáveis, é necessário a criação de uma [app no Strava](https://developers.strava.com/docs/getting-started/#account).
 
@@ -74,7 +74,7 @@ Configure the following environment variables before running the container:
 - `STRAVA_CLIENT_ID`: Your Strava client ID
 - `STRAVA_CLIENT_SECRET`: Your Strava client secret
 
-You can configure them directly in the `.env` file at the root of the project.
+You can configure creating the `.env` file at the root of the project.
 
 To generate these variables, you need to create a [Strava app](https://developers.strava.com/docs/getting-started/#account).
 
