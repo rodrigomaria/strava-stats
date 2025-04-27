@@ -24,6 +24,15 @@ Você pode configurá-las criando um arquivo `.env` na raiz do projeto.
 
 Para gerar essas variáveis, é necessário a criação de uma [app no Strava](https://developers.strava.com/docs/getting-started/#account).
 
+#### Criação do arquivo .env
+Para facilitar a configuração das variáveis de ambiente, você pode usar o comando:
+
+```bash
+make env STRAVA_CLIENT_ID=seu_id STRAVA_CLIENT_SECRET=seu_secret
+```
+
+Este comando criará automaticamente o arquivo `.env` com as credenciais fornecidas.
+
 ### Uso
 #### Comandos Disponíveis
 
@@ -38,6 +47,7 @@ Para gerar essas variáveis, é necessário a criação de uma [app no Strava](h
 | `make stop` | Para e remove o container |
 | `make restart` | Reinicia o container |
 | `make black` | Executa o formatador Black no código |
+| `make env` | Cria o arquivo .env com as credenciais do Strava |
 | `make help` | Mostra a ajuda com todos os comandos |
 
 #### Acessar o Jupyter Notebook
@@ -78,6 +88,15 @@ You can configure creating the `.env` file at the root of the project.
 
 To generate these variables, you need to create a [Strava app](https://developers.strava.com/docs/getting-started/#account).
 
+#### Creating the .env file
+To easily configure the environment variables, you can use the command:
+
+```bash
+make env STRAVA_CLIENT_ID=your_id STRAVA_CLIENT_SECRET=your_secret
+```
+
+This command will automatically create the `.env` file with the provided credentials.
+
 ### Usage
 #### Available Commands
 
@@ -92,6 +111,7 @@ To generate these variables, you need to create a [Strava app](https://developer
 | `make stop` | Stop and remove the container |
 | `make restart` | Restart the container |
 | `make black` | Run the Black formatter on the code |
+| `make env` | Create the .env file with Strava credentials |
 | `make help` | Show help with all commands |
 
 #### Accessing the Jupyter Notebook

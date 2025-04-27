@@ -16,6 +16,7 @@ help: ## show this help
 	@echo '- make stop'
 	@echo '- make restart'
 	@echo '- make black'
+	@echo '- make env'
 	@echo ''
 	@echo 'targets:'
 	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed 's/:.*##/#/' | column -t -c 2 -s '#'
@@ -61,3 +62,14 @@ restart: ## stop and recreate the docker compose services
 .PHONY: black
 black: run ## run black over the code
 	@ $(EXEC) /bin/sh -c "black ."
+
+.PHONY: env
+env: ## create .env file with Strava credentials
+	@echo "Creating .env file..."
+	@if [ -z "$(STRAVA_CLIENT_ID)" ] || [ -z "$(STRAVA_CLIENT_SECRET)" ]; then \
+		echo "Usage: make env STRAVA_CLIENT_ID=your_id STRAVA_CLIENT_SECRET=your_secret"; \
+		exit 1; \
+	fi
+	@echo "STRAVA_CLIENT_ID=$(STRAVA_CLIENT_ID)" > .env
+	@echo "STRAVA_CLIENT_SECRET=$(STRAVA_CLIENT_SECRET)" >> .env
+	@echo ".env file created successfully with provided credentials."
