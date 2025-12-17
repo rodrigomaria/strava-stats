@@ -40,20 +40,20 @@ Este comando criará automaticamente o arquivo `.env` com as credenciais forneci
 |---------|-----------|
 | `make build` | Constrói o container Docker |
 | `make run` | Inicia o container em modo detached |
-| `make jupyter` | Executa o servidor Jupyter Notebook |
+| `make execute` | Executa o servidor Jupyter Notebook diretamente no container |
 | `make sh` | Acessa o container usando shell sh |
 | `make bash` | Acessa o container usando bash |
 | `make logs` | Mostra os logs do container |
 | `make stop` | Para e remove o container |
 | `make restart` | Reinicia o container |
-| `make black` | Executa o formatador Black no código |
+| `make ruff` | Executa o Ruff (lint + format) |
 | `make env` | Cria o arquivo .env com as credenciais do Strava |
 | `make help` | Mostra a ajuda com todos os comandos |
 
 #### Acessar o Jupyter Notebook
-1. Execute o comando `make jupyter` para iniciar o servidor Jupyter Notebook
+1. Execute o comando `make execute` para iniciar o servidor Jupyter Notebook
 2. Abra seu navegador e acesse `http://localhost:8888`
-3. Use o token de acesso mostrado no terminal para fazer login
+3. Use o token de acesso mostrado no terminal para fazer login (se solicitado)
 4. Abra o notebook `strava_statistics.ipynb`
 
 #### Autenticação com Strava
@@ -104,20 +104,20 @@ This command will automatically create the `.env` file with the provided credent
 |---------|-------------|
 | `make build` | Build the Docker container |
 | `make run` | Start the container in detached mode |
-| `make jupyter` | Run the Jupyter Notebook server |
+| `make execute` | Run the Jupyter Notebook server directly in the container |
 | `make sh` | Access the container using sh shell |
 | `make bash` | Access the container using bash |
 | `make logs` | Show container logs |
 | `make stop` | Stop and remove the container |
 | `make restart` | Restart the container |
-| `make black` | Run the Black formatter on the code |
+| `make ruff` | Run Ruff (lint + format) |
 | `make env` | Create the .env file with Strava credentials |
 | `make help` | Show help with all commands |
 
 #### Accessing the Jupyter Notebook
-1. Run the `make jupyter` command to start the Jupyter Notebook server
+1. Run the `make execute` command to start the Jupyter Notebook server
 2. Open your browser and go to `http://localhost:8888`
-3. Use the access token shown in the terminal to log in
+3. Use the access token shown in the terminal to log in (if prompted)
 4. Open the `strava_statistics.ipynb` notebook
 
 #### Strava Authentication
