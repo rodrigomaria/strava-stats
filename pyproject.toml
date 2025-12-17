@@ -1,0 +1,3 @@
+[tool.ruff]
+include = ["pyproject.toml", "strava_statistics.ipynb"]
+lint.extend-select = ["I"]

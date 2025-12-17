@@ -1,5 +1,6 @@
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 $(eval $(ARGS):;@:)
+COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 EXEC = docker exec -it strava-statistics
 
 # HELP COMMANDS
@@ -24,18 +25,18 @@ help: ## show this help
 .PHONY : build
 build: stop ## build application containers
 ifeq ($(ARGS), nocache)
-	@ docker-compose build --no-cache
+	@ $(COMPOSE) build --no-cache
 else
-	@ docker-compose build
+	@ $(COMPOSE) build
 endif
 
 .PHONY : run
 run: ## start the application
-	@ docker-compose up -d
+	@ $(COMPOSE) up -d
 
-.PHONY: jupyter
-jupyter: run ## execute jupyter notebook server directly in the container
-	@ $(EXEC) jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+.PHONY: execute
+execute: run ## execute jupyter notebook server directly in the container
+	@ $(EXEC) jupyter notebook --ip=0.0.0.0 --port=8888 --port-retries=0 --no-browser --allow-root
 
 .PHONY: sh
 sh: run ## runs pure shell on application container
@@ -51,7 +52,7 @@ logs: run ## show the logs on terminal
 
 .PHONY: stop
 stop: ## stop all docker compose services
-	@ docker-compose down -v
+	@ $(COMPOSE) down -v
 
 .PHONY: restart
 restart: ## stop and recreate the docker compose services
@@ -59,9 +60,10 @@ restart: ## stop and recreate the docker compose services
 	@ sleep 2
 	@ make run
 
-.PHONY: black
-black: run ## run black over the code
-	@ $(EXEC) /bin/sh -c "black ."
+.PHONY: ruff
+ruff: run ## run ruff over the code
+	@ $(EXEC) /bin/sh -c "ruff check --fix"
+	@ $(EXEC) /bin/sh -c "ruff format"
 
 .PHONY: env
 env: ## create .env file with Strava credentials
