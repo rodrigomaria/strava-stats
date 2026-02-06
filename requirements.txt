@@ -1,5 +1,11 @@
+# Dependencies
 ipywidgets==8.1.8
 jupyter==1.1.1
-pandas==2.3.3
+pandas==3.0.0
 requests-oauthlib==2.0.0
-ruff==0.14.13
+
+# Lint
+ruff==0.15.0
+
+# Security
+pip-audit==2.10.0
