@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+.eggs
+*.egg
+.mypy_cache
+.pytest_cache
+.ruff_cache
+
+# Virtual environments
+venv
+.venv
+env
+.env.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+docker-compose.yaml
+.dockerignore
+
+# Database
+*.sqlite3
+db.sqlite3
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# Documentation
+README.md
+docs
+
+# Makefile
+Makefile

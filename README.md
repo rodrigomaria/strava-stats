@@ -1,129 +1,94 @@
-# Strava Statistics
+# Strava Stats
 
-*[Português](#português) | [English](#english)*
+Aplicação web Django para visualizar estatísticas de atividades do Strava.
 
-<a id="português"></a>
-## Português
+## Pré-requisitos
 
-### Descrição
-Este projeto contém um notebook Jupyter para interagir com a API do Strava, permitindo a análise de atividades esportivas.
+- Python 3.12+ (ou Docker)
+- Conta no Strava com uma aplicação criada
 
-### Requisitos
-- Docker
-- Docker Compose
+## Configuração
 
-### Configuração
+### 1. Criar aplicação no Strava
 
-#### Variáveis de ambiente
-Configure as seguintes variáveis de ambiente antes de executar o container:
+1. Acesse https://www.strava.com/settings/api
+2. Crie uma nova aplicação
+3. Configure o **Authorization Callback Domain** como `localhost`
 
-- `STRAVA_CLIENT_ID`: Seu ID de cliente Strava
-- `STRAVA_CLIENT_SECRET`: Seu segredo de cliente Strava
-
-Você pode configurá-las criando um arquivo `.env` na raiz do projeto.
-
-Para gerar essas variáveis, é necessário a criação de uma [app no Strava](https://developers.strava.com/docs/getting-started/#account).
-
-#### Criação do arquivo .env
-Para facilitar a configuração das variáveis de ambiente, você pode usar o comando:
+### 2. Configurar credenciais
 
 ```bash
-make env STRAVA_CLIENT_ID=seu_id STRAVA_CLIENT_SECRET=seu_secret
+make env STRAVA_CLIENT_ID=seu_client_id STRAVA_CLIENT_SECRET=seu_client_secret
 ```
 
-Este comando criará automaticamente o arquivo `.env` com as credenciais fornecidas.
+### 3. Executar localmente
 
-### Uso
-#### Comandos Disponíveis
+```bash
+make install    # Instalar dependências
+make migrate    # Executar migrações
+make runserver  # Iniciar servidor
+```
+
+Acesse http://localhost:8000
+
+### 4. Executar com Docker
+
+```bash
+make build   # Construir imagem
+make run     # Iniciar container
+```
+
+## Comandos Disponíveis
 
 | Comando | Descrição |
 |---------|-----------|
-| `make build` | Constrói o container Docker |
-| `make run` | Inicia o container em modo detached |
-| `make execute` | Executa o servidor Jupyter Notebook diretamente no container |
-| `make sh` | Acessa o container usando shell sh |
-| `make bash` | Acessa o container usando bash |
-| `make logs` | Mostra os logs do container |
-| `make stop` | Para e remove o container |
-| `make restart` | Reinicia o container |
-| `make ruff` | Executa o Ruff (lint + format) |
-| `make env` | Cria o arquivo .env com as credenciais do Strava |
-| `make help` | Mostra a ajuda com todos os comandos |
+| `make install` | Instalar dependências |
+| `make migrate` | Executar migrações Django |
+| `make runserver` | Iniciar servidor de desenvolvimento |
+| `make build` | Construir container Docker |
+| `make run` | Iniciar container Docker |
+| `make execute` | Executar Django no Docker |
+| `make stop` | Parar containers |
+| `make ruff` | Executar linter |
+| `make audit` | Auditoria de segurança |
+| `make help` | Mostrar ajuda |
 
-#### Acessar o Jupyter Notebook
-1. Execute o comando `make execute` para iniciar o servidor Jupyter Notebook
-2. Abra seu navegador e acesse `http://localhost:8888`
-3. Use o token de acesso mostrado no terminal para fazer login (se solicitado)
-4. Abra o notebook `strava_statistics.ipynb`
+## Estrutura do Projeto
 
-#### Autenticação com Strava
-1. Execute as células do notebook para obter o link de autorização
-2. Clique no link e autorize o acesso ao Strava
-3. Copie a URL de redirecionamento e cole-a no notebook quando solicitado
-
-### Notas
-- Os dados e análises ficam salvos no volume montado.
-
----
-
-<a id="english"></a>
-## English
-
-### Description
-This project contains a Jupyter notebook to interact with the Strava API, allowing the analysis of sports activities.
-
-### Requirements
-- Docker
-- Docker Compose
-
-### Configuration
-
-#### Environment Variables
-Configure the following environment variables before running the container:
-
-- `STRAVA_CLIENT_ID`: Your Strava client ID
-- `STRAVA_CLIENT_SECRET`: Your Strava client secret
-
-You can configure creating the `.env` file at the root of the project.
-
-To generate these variables, you need to create a [Strava app](https://developers.strava.com/docs/getting-started/#account).
-
-#### Creating the .env file
-To easily configure the environment variables, you can use the command:
-
-```bash
-make env STRAVA_CLIENT_ID=your_id STRAVA_CLIENT_SECRET=your_secret
+```
+strava-stats/
+├── manage.py
+├── strava_stats/           # Configuração Django
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── activities/             # App principal
+│   ├── services/           # Serviços modularizados
+│   │   ├── strava_auth.py  # Autenticação OAuth2
+│   │   ├── strava_api.py   # Cliente API Strava
+│   │   └── statistics.py   # Processamento de estatísticas
+│   ├── constants.py
+│   ├── views.py
+│   └── urls.py
+├── templates/
+└── static/
 ```
 
-This command will automatically create the `.env` file with the provided credentials.
+## Funcionalidades
 
-### Usage
-#### Available Commands
+- **Autenticação OAuth2**: Login automático com Strava
+- **Dashboard**: Visualização completa das estatísticas
+- **Estatísticas por Tipo**: Análise por esporte
+- **Estatísticas Mensais/Semanais**: Acompanhamento temporal
+- **Detalhes de Atividades**: Modal interativo
 
-| Command | Description |
-|---------|-------------|
-| `make build` | Build the Docker container |
-| `make run` | Start the container in detached mode |
-| `make execute` | Run the Jupyter Notebook server directly in the container |
-| `make sh` | Access the container using sh shell |
-| `make bash` | Access the container using bash |
-| `make logs` | Show container logs |
-| `make stop` | Stop and remove the container |
-| `make restart` | Restart the container |
-| `make ruff` | Run Ruff (lint + format) |
-| `make env` | Create the .env file with Strava credentials |
-| `make help` | Show help with all commands |
+## Tecnologias
 
-#### Accessing the Jupyter Notebook
-1. Run the `make execute` command to start the Jupyter Notebook server
-2. Open your browser and go to `http://localhost:8888`
-3. Use the access token shown in the terminal to log in (if prompted)
-4. Open the `strava_statistics.ipynb` notebook
+- Python 3.12
+- Django 5.1
+- Pandas
+- TailwindCSS
 
-#### Strava Authentication
-1. Run the notebook cells to get the authorization link
-2. Click on the link and authorize access to Strava
-3. Copy the redirect URL and paste it into the notebook when prompted
+## Licença
 
-### Notes
-- Data and analyses are saved in the mounted volume.
+MIT

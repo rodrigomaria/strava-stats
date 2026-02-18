@@ -1,0 +1,7 @@
+-r production.txt
+
+# Lint
+ruff==0.15.0
+
+# Security
+pip-audit==2.*

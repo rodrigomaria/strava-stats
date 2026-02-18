@@ -1,0 +1,4 @@
+# Base packages
+Django==5.*
+pandas==3.*
+requests==2.*

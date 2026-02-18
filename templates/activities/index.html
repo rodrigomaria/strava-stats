@@ -1,0 +1,31 @@
+{% extends "activities/base.html" %}
+
+{% block title %}Strava Stats - Login{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600">
+    <div class="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full mx-4">
+        <div class="text-center">
+            <div class="mb-6">
+                <svg class="w-20 h-20 mx-auto text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Strava Stats</h1>
+            <p class="text-gray-600 mb-8">Visualize suas estatísticas de atividades do Strava</p>
+            
+            <a href="{% url 'activities:strava_login' %}" 
+               class="inline-flex items-center justify-center w-full px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg">
+                <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
+                </svg>
+                Conectar com Strava
+            </a>
+            
+            <p class="mt-6 text-sm text-gray-500">
+                Ao conectar, você autoriza o acesso às suas atividades
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

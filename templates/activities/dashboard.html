@@ -1,0 +1,435 @@
+{% extends "activities/base.html" %}
+
+{% block title %}Dashboard - Strava Stats{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <svg class="w-10 h-10 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/>
+                    </svg>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">Strava Stats</h1>
+                        <p class="text-sm text-gray-500">Olá, {{ athlete_name }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    {% if athlete_profile %}
+                    <img src="{{ athlete_profile }}" alt="Profile" class="w-10 h-10 rounded-full">
+                    {% endif %}
+                    <a href="{% url 'activities:strava_logout' %}" 
+                       class="text-gray-600 hover:text-gray-800 font-medium text-sm">
+                        Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Filters Section -->
+        <section class="mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+                <div class="flex flex-wrap items-center gap-4">
+                    <span class="text-sm font-medium text-gray-700">Filtros:</span>
+                    <select id="sportFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="">Todos os esportes</option>
+                        {% for sport in sport_types %}
+                        <option value="{{ sport.value }}">{{ sport.label }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="monthFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="">Todos os meses</option>
+                        {% for stat in monthly_stats %}
+                        <option value="{{ stat.month_number }}">{{ stat.month }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="weekFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="">Todas as semanas</option>
+                        {% for stat in weekly_stats %}
+                        <option value="{{ stat.week_number }}">{{ stat.week }} ({{ stat.start_date }})</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" id="searchFilter" onkeyup="applyFilters()" placeholder="Buscar atividade..." 
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-48">
+                    <button onclick="clearFilters()" class="px-3 py-2 text-sm text-orange-600 hover:text-orange-800 font-medium">
+                        Limpar filtros
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- General Stats Cards -->
+        <section class="mb-8">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Resumo do Ano</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <p class="text-sm text-gray-500 mb-1">Total de Atividades</p>
+                    <p id="summaryActivities" class="text-2xl font-bold text-gray-800">{{ general_stats.total_activities }}</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <p class="text-sm text-gray-500 mb-1">Tempo Total</p>
+                    <p id="summaryTime" class="text-2xl font-bold text-gray-800">{{ general_stats.total_time }}</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <p class="text-sm text-gray-500 mb-1">Distância Total</p>
+                    <p id="summaryDistance" class="text-2xl font-bold text-gray-800">{{ general_stats.total_distance }} km</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <p class="text-sm text-gray-500 mb-1">Elevação Total</p>
+                    <p id="summaryElevation" class="text-2xl font-bold text-gray-800">{{ general_stats.total_elevation }} m</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Additional Stats -->
+        <section class="mb-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-sm p-6 text-white">
+                    <p class="text-sm opacity-90 mb-1">Dias em Atividade</p>
+                    <p class="text-2xl font-bold">{{ general_stats.activity_days }}</p>
+                </div>
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-sm p-6 text-white">
+                    <p class="text-sm opacity-90 mb-1">Melhor Dia</p>
+                    <p class="text-2xl font-bold">{{ general_stats.best_week_day }}</p>
+                </div>
+                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-sm p-6 text-white">
+                    <p class="text-sm opacity-90 mb-1">Hora Mais Ativa</p>
+                    <p class="text-2xl font-bold">{{ general_stats.best_active_hour }}</p>
+                </div>
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-sm p-6 text-white">
+                    <p class="text-sm opacity-90 mb-1">Tempo Médio</p>
+                    <p class="text-2xl font-bold">{{ general_stats.avg_activity_time }}</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- All Activities Table -->
+        <section class="mt-8">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Atividades</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto max-h-96">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Esporte</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Distância</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Tempo</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Elevação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activitiesTableBody" class="divide-y divide-gray-100">
+                            {% for activity in all_activities %}
+                            <tr class="hover:bg-gray-50 activity-row" data-sport="{{ activity.sport_type_key }}" data-name="{{ activity.name|lower }}" data-week="{{ activity.week }}" data-month="{{ activity.month }}" data-distance="{{ activity.distance_raw }}" data-time="{{ activity.elapsed_time_seconds }}" data-elevation="{{ activity.elevation_raw }}">
+                                <td class="px-4 py-3 text-sm font-medium text-gray-800">{{ activity.name }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">{{ activity.sport_type }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">{{ activity.date }} {{ activity.time }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600 text-right">{{ activity.distance }} km</td>
+                                <td class="px-4 py-3 text-sm text-gray-600 text-right">{{ activity.elapsed_time }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600 text-right">{{ activity.elevation }} m</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">Nenhuma atividade encontrada</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid md:grid-cols-2 gap-8 mt-12">
+            <!-- Activity Types -->
+            <section>
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Por Tipo de Atividade</h2>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Esporte</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qtd</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Tempo</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Dist (km)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activityTypeTableBody" class="divide-y divide-gray-100">
+                            {% for stat in activity_type_stats %}
+                            <tr class="hover:bg-gray-50 cursor-pointer activity-type-row" data-sport="{{ stat.sport_type_key }}" onclick="filterByType('{{ stat.sport_type_key }}')">
+                                <td class="px-4 py-3 text-sm font-medium text-gray-800">{{ stat.sport_type }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600 text-right">{{ stat.count }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600 text-right">{{ stat.elapsed_time }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600 text-right">{{ stat.distance }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">Nenhuma atividade encontrada</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Activity Type Pie Chart -->
+            <section>
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Distribuição por Tipo</h2>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6" style="height: 350px;">
+                    <canvas id="activityTypePieChart"></canvas>
+                </div>
+            </section>
+        </div>
+
+
+    </main>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{{ general_stats|json_script:"generalStats" }}
+{{ activity_type_stats|json_script:"activityTypeStats" }}
+<script>
+// Obter dados do JSON script do Django
+const generalStats = JSON.parse(document.getElementById('generalStats').textContent);
+const activityTypeStats = JSON.parse(document.getElementById('activityTypeStats').textContent);
+
+const totalStats = {
+    activities: generalStats.total_activities || 0,
+    distance: generalStats.total_distance_raw || 0,
+    time: generalStats.total_time_seconds || 0,
+    elevation: generalStats.total_elevation_raw || 0
+};
+
+const activityTypeData = activityTypeStats.map(stat => ({
+    label: stat.sport_type || 'Desconhecido',
+    count: stat.count || 0,
+    color: stat.color || '#6B7280'
+}));
+
+const chartColors = [
+    '#F97316', '#3B82F6', '#10B981', '#8B5CF6', '#EC4899', 
+    '#F59E0B', '#06B6D4', '#84CC16', '#EF4444', '#6366F1'
+];
+
+let pieChart;
+
+function initPieChart() {
+    const canvas = document.getElementById('activityTypePieChart');
+    if (!canvas) {
+        console.error('Canvas activityTypePieChart not found');
+        return;
+    }
+    const ctx = canvas.getContext('2d');
+    const labels = activityTypeData.map(d => d.label);
+    const data = activityTypeData.map(d => d.count);
+    const colors = activityTypeData.map((_, i) => chartColors[i % chartColors.length]);
+    
+    pieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+}
+
+function filterByType(sportType) {
+    document.getElementById('sportFilter').value = sportType;
+    applyFilters();
+    document.getElementById('activitiesTableBody').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function filterByWeek(weekNumber) {
+    document.getElementById('weekFilter').value = weekNumber;
+    applyFilters();
+    document.getElementById('activitiesTableBody').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function filterByMonth(monthNumber) {
+    document.getElementById('monthFilter').value = monthNumber;
+    applyFilters();
+    document.getElementById('activitiesTableBody').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function formatTime(totalSeconds) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+}
+
+function updatePieChart(sportCounts) {
+    if (!pieChart) return;
+    
+    if (sportCounts === null) {
+        // Restaurar dados originais
+        pieChart.data.labels = activityTypeData.map(d => d.label);
+        pieChart.data.datasets[0].data = activityTypeData.map(d => d.count);
+    } else {
+        // Usar dados filtrados
+        const filteredLabels = [];
+        const filteredData = [];
+        const activityTypeRows = document.querySelectorAll('.activity-type-row');
+        
+        // Mapear os dados originais para encontrar as chaves corretas
+        activityTypeRows.forEach(row => {
+            const sport = row.dataset.sport;
+            if (sportCounts[sport] > 0) {
+                const cells = row.querySelectorAll('td');
+                const label = cells[0].textContent;
+                filteredLabels.push(label);
+                filteredData.push(sportCounts[sport]);
+            }
+        });
+        
+        pieChart.data.labels = filteredLabels;
+        pieChart.data.datasets[0].data = filteredData;
+    }
+    
+    pieChart.update();
+}
+
+function applyFilters() {
+    const sportFilter = document.getElementById('sportFilter').value;
+    const weekFilter = document.getElementById('weekFilter').value;
+    const monthFilter = document.getElementById('monthFilter').value;
+    const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+    const rows = document.querySelectorAll('.activity-row');
+    const activityTypeRows = document.querySelectorAll('.activity-type-row');
+    
+    let visibleCount = 0;
+    let totalDistance = 0;
+    let totalTime = 0;
+    let totalElevation = 0;
+
+    // Filtrar tabela de atividades
+    rows.forEach(row => {
+        const sport = row.dataset.sport;
+        const week = row.dataset.week;
+        const month = row.dataset.month;
+        const name = row.dataset.name;
+        
+        const matchesSport = !sportFilter || sport === sportFilter;
+        const matchesWeek = !weekFilter || String(week) === String(weekFilter);
+        const matchesMonth = !monthFilter || String(month) === String(monthFilter);
+        const matchesSearch = !searchFilter || name.includes(searchFilter);
+        
+        if (matchesSport && matchesWeek && matchesMonth && matchesSearch) {
+            row.style.display = '';
+            visibleCount++;
+            totalDistance += parseFloat(row.dataset.distance) || 0;
+            totalTime += parseInt(row.dataset.time) || 0;
+            totalElevation += parseFloat(row.dataset.elevation) || 0;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Filtrar tabela de tipos de atividade
+    const sportCounts = {};
+    const sportStats = {};
+    
+    rows.forEach(row => {
+        if (row.style.display !== 'none') {
+            const sport = row.dataset.sport;
+            const distance = parseFloat(row.dataset.distance) || 0;
+            const time = parseInt(row.dataset.time) || 0;
+            
+            if (!sportCounts[sport]) {
+                sportCounts[sport] = 0;
+                sportStats[sport] = { count: 0, distance: 0, time: 0 };
+            }
+            
+            sportCounts[sport]++;
+            sportStats[sport].count++;
+            sportStats[sport].distance += distance;
+            sportStats[sport].time += time;
+        }
+    });
+
+    // Atualizar tabela de tipos de atividade
+    activityTypeRows.forEach(row => {
+        const sport = row.dataset.sport;
+        if (sportCounts[sport] > 0) {
+            row.style.display = '';
+            // Atualizar valores na tabela
+            const cells = row.querySelectorAll('td');
+            cells[1].textContent = sportCounts[sport];
+            cells[2].textContent = formatTime(sportStats[sport].time);
+            cells[3].textContent = sportStats[sport].distance.toFixed(1) + ' km';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Atualizar gráfico de pizza
+    updatePieChart(sportCounts);
+
+    const hasFilter = sportFilter || weekFilter || monthFilter || searchFilter;
+    
+    if (hasFilter) {
+        document.getElementById('summaryActivities').textContent = `${visibleCount} / ${totalStats.activities}`;
+        document.getElementById('summaryDistance').textContent = `${totalDistance.toFixed(1)} / ${totalStats.distance} km`;
+        document.getElementById('summaryTime').textContent = `${formatTime(totalTime)} / ${formatTime(totalStats.time)}`;
+        document.getElementById('summaryElevation').textContent = `${Math.round(totalElevation)} / ${Math.round(totalStats.elevation)} m`;
+    } else {
+        document.getElementById('summaryActivities').textContent = totalStats.activities;
+        document.getElementById('summaryDistance').textContent = totalStats.distance + ' km';
+        document.getElementById('summaryTime').textContent = formatTime(totalStats.time);
+        document.getElementById('summaryElevation').textContent = Math.round(totalStats.elevation) + ' m';
+        
+        // Restaurar valores originais da tabela de tipos
+        activityTypeRows.forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Restaurar gráfico original
+        updatePieChart(null);
+    }
+}
+
+function clearFilters() {
+    document.getElementById('sportFilter').value = '';
+    document.getElementById('weekFilter').value = '';
+    document.getElementById('monthFilter').value = '';
+    document.getElementById('searchFilter').value = '';
+    applyFilters();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing...');
+    console.log('totalStats:', totalStats);
+    console.log('activityTypeData:', activityTypeData);
+    initPieChart();
+});
+</script>
+{% endblock %}
