@@ -3,9 +3,16 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret-key-change-in-production")
-
 DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
+
+# Segurança: Em desenvolvimento, usar chave padrão; em produção, exigir variável de ambiente
+if DEBUG:
+    SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-dev-key-change-for-production")
+else:
+    SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+    if not SECRET_KEY:
+        raise ValueError("DJANGO_SECRET_KEY environment variable is required in production")
+
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
@@ -72,6 +79,23 @@ STATIC_URL = "/strava-stats/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Cache Configuration
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "strava-stats-cache",
+        "TIMEOUT": 3600,  # 1 hora
+        "OPTIONS": {
+            "MAX_ENTRIES": 1000,
+            "CULL_FREQUENCY": 3,
+        }
+    }
+}
+
+# Cache timeouts
+CACHE_TIMEOUT_ACTIVITIES = 3600  # 1 hora
+CACHE_TIMEOUT_STATS = 1800     # 30 minutos
 
 # Strava OAuth2 Configuration
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID")

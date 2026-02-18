@@ -1,7 +1,11 @@
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
+import logging
 
 from .services import StatisticsService, StravaAPIService, StravaAuthService
+from .exceptions import StravaAPIError, StravaAuthenticationError, StravaTokenExpiredError
+
+logger = logging.getLogger(__name__)
 
 
 def _get_strava_session(request) -> dict | None:
@@ -63,8 +67,12 @@ def strava_callback(request):
 
         return redirect("activities:dashboard")
 
+    except StravaAuthenticationError as e:
+        logger.error(f"Erro de autenticação Strava: {e}")
+        return render(request, "activities/error.html", {"error": f"Erro de autenticação: {e}"})
     except Exception as e:
-        return render(request, "activities/error.html", {"error": str(e)})
+        logger.error(f"Erro inesperado no callback Strava: {e}", exc_info=True)
+        return render(request, "activities/error.html", {"error": "Erro ao processar autenticação com Strava"})
 
 
 def strava_logout(request):
@@ -79,10 +87,12 @@ def dashboard(request):
         return redirect("activities:index")
 
     try:
-        api_service = StravaAPIService(session_data["access_token"])
+        # Usar user_id da sessão para cache
+        user_id = request.session.get("athlete_name", "anonymous") or "default"
+        api_service = StravaAPIService(session_data["access_token"], user_id)
         activities = api_service.get_all_activities()
 
-        stats_service = StatisticsService(activities)
+        stats_service = StatisticsService(activities, user_id)
 
         context = {
             "athlete_name": request.session.get("athlete_name", "Atleta"),
@@ -97,8 +107,17 @@ def dashboard(request):
 
         return render(request, "activities/dashboard.html", context)
 
+    except StravaTokenExpiredError as e:
+        logger.error(f"Token Strava expirado: {e}")
+        # Limpar sessão e redirecionar para login
+        request.session.flush()
+        return render(request, "activities/error.html", {"error": "Sua sessão expirou. Por favor, faça login novamente."})
+    except StravaAPIError as e:
+        logger.error(f"Erro na API Strava: {e}")
+        return render(request, "activities/error.html", {"error": f"Erro ao carregar dados do Strava: {e}"})
     except Exception as e:
-        return render(request, "activities/error.html", {"error": str(e)})
+        logger.error(f"Erro inesperado no dashboard: {e}", exc_info=True)
+        return render(request, "activities/error.html", {"error": "Erro ao carregar o dashboard"})
 
 
 def activities_by_sport(request, sport_type: str):
@@ -116,5 +135,9 @@ def activities_by_sport(request, sport_type: str):
 
         return JsonResponse({"activities": filtered_activities})
 
+    except StravaAPIError as e:
+        logger.error(f"Erro na API Strava: {e}")
+        return JsonResponse({"error": f"Erro ao carregar atividades: {e}"}, status=500)
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.error(f"Erro inesperado ao filtrar atividades: {e}", exc_info=True)
+        return JsonResponse({"error": "Erro ao processar solicitação"}, status=500)

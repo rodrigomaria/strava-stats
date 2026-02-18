@@ -1,13 +1,18 @@
+import logging
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pandas as pd
 
 from ..constants import FIRST_DAY_YEAR, TRANSLATE_ACTIVITIES, TRANSLATE_WEEKDAYS
+from .cache_service import CacheService
+
+logger = logging.getLogger(__name__)
 
 
 class StatisticsService:
-    def __init__(self, activities: list):
+    def __init__(self, activities: list, user_id: str = None):
+        self.user_id = user_id or "default"
         self.df = self._create_dataframe(activities)
 
     def _create_dataframe(self, activities: list) -> pd.DataFrame:
@@ -44,6 +49,18 @@ class StatisticsService:
         return (today - first_day).days + 1
 
     def get_general_statistics(self) -> dict:
+        """Obtém estatísticas gerais com cache"""
+        cache_key = "general_stats"
+        cached_stats = CacheService.get_stats(self.user_id, cache_key)
+        
+        if cached_stats is not None:
+            return cached_stats
+        
+        stats = self._calculate_general_statistics()
+        CacheService.set_stats(self.user_id, cache_key, stats)
+        return stats
+    
+    def _calculate_general_statistics(self) -> dict:
         if self.df.empty:
             return {}
 
