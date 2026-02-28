@@ -193,7 +193,6 @@
                         
                         <!-- Page Numbers -->
                         <div class="flex flex-wrap items-center gap-1">
-                            <!-- Loop usando string como range -->
                             {% with ''|center:activities_page.total_pages as range %}
                             {% for _ in range %}
                                 {% with forloop.counter as page_num %}

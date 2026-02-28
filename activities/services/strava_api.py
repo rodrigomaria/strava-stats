@@ -30,7 +30,6 @@ class StravaAPIService:
         if not force_refresh:
             cached_activities = CacheService.get_activities(self.user_id, self.access_token)
             if cached_activities is not None:
-                logger.info(f"Usando {len(cached_activities)} atividades do cache")
                 return cached_activities
 
         # Buscar da API se não estiver em cache
@@ -103,7 +102,6 @@ class StravaAPIService:
             # Tentar usar cache antigo como fallback
             cached_activities = CacheService.get_activities(self.user_id, self.access_token)
             if cached_activities:
-                logger.info("Usando cache antigo como fallback")
                 return cached_activities
 
         return all_activities
