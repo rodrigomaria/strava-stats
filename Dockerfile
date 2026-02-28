@@ -1,7 +1,9 @@
-FROM python:3.12-slim AS base
+# syntax=docker/dockerfile:1.7
+FROM python:3.14-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
@@ -21,9 +23,6 @@ COPY entrypoint.sh .
 COPY strava_stats/ ./strava_stats/
 COPY activities/ ./activities/
 COPY templates/ ./templates/
-COPY manage.py .
-
-RUN chmod +x entrypoint.sh
 
 EXPOSE 8000
 

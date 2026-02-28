@@ -1,11 +1,37 @@
+import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
-import logging
 
 from .services import StatisticsService, StravaAPIService, StravaAuthService
 from .exceptions import StravaAPIError, StravaAuthenticationError, StravaTokenExpiredError
 
 logger = logging.getLogger(__name__)
+
+MONTH_NAMES_PT_BR = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+]
+
+
+def _get_month_filters() -> list:
+    current_month = datetime.now(ZoneInfo("America/Sao_Paulo")).month
+    return [
+        {"value": month_number, "label": MONTH_NAMES_PT_BR[month_number - 1]}
+        for month_number in range(1, current_month + 1)
+    ]
 
 
 def _get_strava_session(request) -> dict | None:
@@ -104,8 +130,6 @@ def dashboard(request):
         month_filter = request.GET.get("month", "")
         search_filter = request.GET.get("search", "")
         
-        logger.info(f"🔍 DEBUG Filtros recebidos: sport='{sport_filter}', week='{week_filter}', month='{month_filter}', search='{search_filter}'")
-        
         # Validar página
         if page < 1:
             page = 1
@@ -114,19 +138,21 @@ def dashboard(request):
         filtered_activities = stats_service.get_filtered_activities(
             sport_filter, week_filter, month_filter, search_filter
         )
-        
-        logger.info(f"🔍 DEBUG Atividades filtradas: {len(filtered_activities)} de {len(stats_service.get_all_activities())}")
-        
+
         # Criar novo StatisticsService com dados filtrados
-        filtered_stats_service = StatisticsService(filtered_activities, user_id)
-        
+        filtered_stats_service = StatisticsService(filtered_activities, user_id, use_cache=False)
+        filtered_general_stats = filtered_stats_service.get_general_statistics()
+        total_general_stats = stats_service.get_general_statistics()
+
         paginated_activities = filtered_stats_service.get_all_activities_paginated(page, per_page)
 
         context = {
             "athlete_name": request.session.get("athlete_name", "Atleta"),
             "athlete_profile": request.session.get("athlete_profile"),
-            "general_stats": filtered_stats_service.get_general_statistics(),
+            "general_stats": filtered_general_stats,
+            "total_general_stats": total_general_stats,
             "monthly_stats": filtered_stats_service.get_monthly_statistics(),
+            "month_filters": _get_month_filters(),
             "activity_type_stats": filtered_stats_service.get_activity_type_statistics(),
             "weekly_stats": filtered_stats_service.get_weekly_statistics(),
             "sport_types": stats_service.get_sport_types(),  # Manter todos os esportes para o select

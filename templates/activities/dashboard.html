@@ -52,24 +52,15 @@
                         
                         <select id="monthFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                             <option value="">Todos os meses</option>
-                            <option value="1" {% if current_filters.month == '1' %}selected{% endif %}>Janeiro</option>
-                            <option value="2" {% if current_filters.month == '2' %}selected{% endif %}>Fevereiro</option>
-                            <option value="3" {% if current_filters.month == '3' %}selected{% endif %}>Março</option>
-                            <option value="4" {% if current_filters.month == '4' %}selected{% endif %}>Abril</option>
-                            <option value="5" {% if current_filters.month == '5' %}selected{% endif %}>Maio</option>
-                            <option value="6" {% if current_filters.month == '6' %}selected{% endif %}>Junho</option>
-                            <option value="7" {% if current_filters.month == '7' %}selected{% endif %}>Julho</option>
-                            <option value="8" {% if current_filters.month == '8' %}selected{% endif %}>Agosto</option>
-                            <option value="9" {% if current_filters.month == '9' %}selected{% endif %}>Setembro</option>
-                            <option value="10" {% if current_filters.month == '10' %}selected{% endif %}>Outubro</option>
-                            <option value="11" {% if current_filters.month == '11' %}selected{% endif %}>Novembro</option>
-                            <option value="12" {% if current_filters.month == '12' %}selected{% endif %}>Dezembro</option>
+                            {% for month in month_filters %}
+                            <option value="{{ month.value }}" {% if current_filters.month == month.value|stringformat:'s' %}selected{% endif %}>{{ month.label }}</option>
+                            {% endfor %}
                         </select>
                         
                         <select id="weekFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                             <option value="">Todas as semanas</option>
                             {% for week in weekly_stats %}
-                                                        <option value="{{ week.week }}" {% if current_filters.week == week.week|stringformat:'s' %}selected{% endif %}>Semana {{ week.week }}</option>
+                            <option value="{{ week.week_number }}" {% if current_filters.week == week.week_number|stringformat:'s' %}selected{% endif %}>{{ week.week }}</option>
                             {% endfor %}
                         </select>
                         
@@ -89,19 +80,19 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                     <p class="text-sm text-gray-500 mb-1">Total de Atividades</p>
-                    <p id="summaryActivities" class="text-2xl font-bold text-gray-800">{{ general_stats.total_activities }}</p>
+                    <p id="summaryActivities" class="text-2xl font-bold text-gray-800">{{ general_stats.total_activities }} / {{ total_general_stats.total_activities }}</p>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                     <p class="text-sm text-gray-500 mb-1">Tempo Total</p>
-                    <p id="summaryTime" class="text-2xl font-bold text-gray-800">{{ general_stats.total_time }}</p>
+                    <p id="summaryTime" class="text-2xl font-bold text-gray-800">{{ general_stats.total_time }} / {{ total_general_stats.total_time }}</p>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                     <p class="text-sm text-gray-500 mb-1">Distância Total</p>
-                    <p id="summaryDistance" class="text-2xl font-bold text-gray-800">{{ general_stats.total_distance }} km</p>
+                    <p id="summaryDistance" class="text-2xl font-bold text-gray-800">{{ general_stats.total_distance }} / {{ total_general_stats.total_distance }} km</p>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                     <p class="text-sm text-gray-500 mb-1">Elevação Total</p>
-                    <p id="summaryElevation" class="text-2xl font-bold text-gray-800">{{ general_stats.total_elevation }} m</p>
+                    <p id="summaryElevation" class="text-2xl font-bold text-gray-800">{{ general_stats.total_elevation }} / {{ total_general_stats.total_elevation }} m</p>
                 </div>
             </div>
         </section>
@@ -420,14 +411,10 @@ function updatePieChart(sportCounts) {
 }
 
 function applyFilters() {
-    console.log('🔍 DEBUG JavaScript: applyFilters() chamado');
     const sportFilter = document.getElementById('sportFilter').value;
     const weekFilter = document.getElementById('weekFilter').value;
     const monthFilter = document.getElementById('monthFilter').value;
     const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
-
-    console.log('🔍 DEBUG JavaScript: Filtros=', { sportFilter, weekFilter, monthFilter, searchFilter });
-    console.log('🔍 DEBUG JavaScript: weekFilter type=', typeof weekFilter, 'weekFilter value=', weekFilter);
 
     // Construir URL com filtros
     const currentUrl = new URL(window.location);
@@ -446,8 +433,6 @@ function applyFilters() {
     
     // Resetar para primeira página
     currentUrl.searchParams.set('page', '1');
-    
-    console.log('🔍 DEBUG JavaScript: URL final=', currentUrl.toString());
     
     // Recarregar página com filtros
     window.location.href = currentUrl.toString();

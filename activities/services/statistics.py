@@ -1,5 +1,7 @@
 import logging
+import re
 from datetime import date, datetime, timedelta
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -11,8 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 class StatisticsService:
-    def __init__(self, activities: list, user_id: str = None):
+    def __init__(self, activities: list, user_id: str = None, use_cache: bool = True):
         self.user_id = user_id or "default"
+        self.use_cache = use_cache
         self.df = self._create_dataframe(activities)
 
     def _create_dataframe(self, activities: list) -> pd.DataFrame:
@@ -50,6 +53,9 @@ class StatisticsService:
 
     def get_general_statistics(self) -> dict:
         """Obtém estatísticas gerais com cache"""
+        if not self.use_cache:
+            return self._calculate_general_statistics()
+
         cache_key = "general_stats"
         cached_stats = CacheService.get_stats(self.user_id, cache_key)
         
@@ -248,30 +254,48 @@ class StatisticsService:
 
         df = self.df.copy()
         original_count = len(df)
-        
-        logger.info(f"🔍 DEBUG get_filtered_activities: Original={original_count}, sport='{sport_filter}', week='{week_filter}', month='{month_filter}', search='{search_filter}'")
-        
+                
         # Aplicar filtros
         if sport_filter:
             df = df[df["sport_type"] == sport_filter]
-            logger.info(f"🔍 DEBUG Filtro sport aplicado: {len(df)} atividades")
         
         if week_filter:
-            df = df[df["start_date_local"].dt.isocalendar().week == int(week_filter)]
-            logger.info(f"🔍 DEBUG Filtro week aplicado: {len(df)} atividades")
+            week_number = self._parse_week_filter(week_filter)
+            if week_number is not None:
+                df = df[df["start_date_local"].dt.isocalendar().week == week_number]
         
         if month_filter:
-            df = df[df["start_date_local"].dt.month == int(month_filter)]
-            logger.info(f"🔍 DEBUG Filtro month aplicado: {len(df)} atividades")
+            try:
+                month_number = int(month_filter)
+            except (TypeError, ValueError):
+                month_number = None
+
+            if month_number is not None:
+                df = df[df["start_date_local"].dt.month == month_number]
         
         if search_filter:
             df = df[df["name"].str.contains(search_filter, case=False, na=False)]
-            logger.info(f"🔍 DEBUG Filtro search aplicado: {len(df)} atividades")
-        
-        logger.info(f"🔍 DEBUG Final: {len(df)} atividades filtradas")
         
         # Retornar lista de dicionários brutos (dados originais da API)
         return df.to_dict("records")
+
+    @staticmethod
+    def _parse_week_filter(week_filter: str) -> Optional[int]:
+        """
+        Aceita filtros como "1" ou "Semana 1" e retorna o número da semana.
+        """
+        if not week_filter:
+            return None
+
+        raw_value = str(week_filter).strip()
+
+        try:
+            return int(raw_value)
+        except ValueError:
+            match = re.search(r"(\d+)", raw_value)
+            if not match:
+                return None
+            return int(match.group(1))
 
     def get_all_activities_paginated(self, page: int = 1, per_page: int = 50) -> dict:
         """Retorna atividades paginadas com metadados"""

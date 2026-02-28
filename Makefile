@@ -12,12 +12,6 @@ help: ## show this help
 	@echo 'target:'
 	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed 's/:.*##/#/' | column -t -c 2 -s '#'
 
-migrate: ## run Django migrations
-	$(PYTHON) manage.py migrate
-
-runserver: ## run Django development server
-	$(PYTHON) manage.py runserver
-
 # DOCKER COMMANDS
 build: stop ## [nocache] build application containers
 ifeq ($(ARGS), nocache)
@@ -55,6 +49,12 @@ ruff: run ## run ruff over the code
 
 audit: ## run pip-audit package auditor
 	@ $(EXEC) /bin/sh -c "pip-audit --desc --format columns --aliases"
+
+migrate: ## run Django migrations
+	$(PYTHON) manage.py migrate
+
+runserver: ## run Django development server
+	$(PYTHON) manage.py runserver
 
 env: ## [STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET] create .env file with Strava credentials
 	@echo "Creating .env file..."
