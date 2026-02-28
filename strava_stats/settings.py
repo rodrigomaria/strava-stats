@@ -93,9 +93,62 @@ CACHES = {
     }
 }
 
+# Desabilitar cache de templates em desenvolvimento
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+            "debug": DEBUG,  # Desabilitar cache de templates
+            "string_if_invalid": "",
+        },
+    },
+]
+
 # Cache timeouts
 CACHE_TIMEOUT_ACTIVITIES = 3600  # 1 hora
 CACHE_TIMEOUT_STATS = 1800     # 30 minutos
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'activities': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}
 
 # Strava OAuth2 Configuration
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID")

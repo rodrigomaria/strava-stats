@@ -65,35 +65,38 @@ class StatisticsService:
             return {}
 
         df = self.df.copy()
+        
+        # Vectorized calculations - mais eficientes
         total_activities = len(df)
-        total_time = self.format_time(df["elapsed_time"].sum())
-        total_distance = df["distance"].sum() / 1000
-        total_elevation = df["total_elevation_gain"].sum()
-
-        total_activity_days = len(df["start_date_local"].dt.date.unique())
-
-        df["day_of_week"] = df["start_date_local"].dt.day_name()
-        best_week_day = df.groupby("day_of_week").size().sort_values(ascending=False).index[0]
-
-        df["hour_of_day"] = df["start_date_local"].dt.hour
-        best_active_hour = df.groupby("hour_of_day").size().sort_values(ascending=False).index[0]
-
-        avg_activity_seconds = df["elapsed_time"].sum() / total_activities
-
         total_time_seconds = int(df["elapsed_time"].sum())
+        total_distance_raw = round(df["distance"].sum() / 1000, 1)
+        total_elevation_raw = round(df["total_elevation_gain"].sum(), 1)
+        
+        # Usar value_counts() já otimizado
+        activity_days = len(df["start_date_local"].dt.date.unique())
+        
+        # Vectorized operations para dia e hora mais ativos
+        df["day_of_week"] = df["start_date_local"].dt.day_name()
+        df["hour_of_day"] = df["start_date_local"].dt.hour
+        
+        # Usar idxmax() mais eficiente que sort_values
+        best_week_day = df["day_of_week"].value_counts().idxmax()
+        best_active_hour = df["hour_of_day"].value_counts().idxmax()
+        
+        avg_activity_seconds = df["elapsed_time"].mean()
 
         return {
             "total_activities": total_activities,
-            "total_time": total_time,
+            "total_time": self.format_time(total_time_seconds),
             "total_time_seconds": total_time_seconds,
-            "total_distance": f"{total_distance:.1f}",
-            "total_distance_raw": round(total_distance, 1),
-            "total_elevation": f"{total_elevation:.1f}",
-            "total_elevation_raw": round(total_elevation, 1),
-            "activity_days": f"{total_activity_days}/{self.get_number_days_year()}",
+            "total_distance": f"{total_distance_raw:.1f}",
+            "total_distance_raw": total_distance_raw,
+            "total_elevation": f"{total_elevation_raw:.1f}",
+            "total_elevation_raw": total_elevation_raw,
+            "activity_days": f"{activity_days}/{self.get_number_days_year()}",
             "best_week_day": TRANSLATE_WEEKDAYS.get(best_week_day, best_week_day),
             "best_active_hour": f"{best_active_hour}:00",
-            "avg_activity_time": self.format_time(avg_activity_seconds),
+            "avg_activity_time": self.format_time(int(avg_activity_seconds)),
         }
 
     def get_monthly_statistics(self) -> list:
@@ -103,22 +106,27 @@ class StatisticsService:
         df = self.df.copy()
         df["month_year"] = df["start_date_local"].dt.strftime("%Y-%m")
 
+        # Vectorized aggregation - mais eficiente
         monthly_stats = (
             df.groupby("month_year")
-            .agg({"elapsed_time": "sum", "start_date_local": "count", "distance": "sum"})
+            .agg({
+                "elapsed_time": "sum", 
+                "start_date_local": "count", 
+                "distance": "sum"
+            })
             .reset_index()
+            .rename(columns={"start_date_local": "activities"})
         )
 
-        result = []
-        for _, row in monthly_stats.iterrows():
-            month_num = int(row["month_year"].split("-")[1])
-            result.append({
-                "month": row["month_year"],
-                "month_number": month_num,
-                "activities": int(row["start_date_local"]),
-                "total_time": self.format_time(row["elapsed_time"]),
-                "total_distance": f"{row['distance'] / 1000:.1f}",
-            })
+        # Vectorized operations para evitar loops
+        monthly_stats["month_number"] = monthly_stats["month_year"].str.split("-").str[1].astype(int)
+        monthly_stats["total_time"] = monthly_stats["elapsed_time"].apply(self.format_time)
+        monthly_stats["total_distance"] = (monthly_stats["distance"] / 1000).round(1).astype(str)
+
+        # Converter para formato esperado pelo template
+        result = monthly_stats[[
+            "month_year", "month_number", "activities", "total_time", "total_distance"
+        ]].rename(columns={"month_year": "month"}).to_dict("records")
 
         return result
 
@@ -128,22 +136,31 @@ class StatisticsService:
 
         df = self.df.copy()
 
-        activity_counts = df["sport_type"].value_counts().to_dict()
-        elapsed_time_by_activity = df.groupby("sport_type")["elapsed_time"].sum().to_dict()
-        distance_by_activity = df.groupby("sport_type")["distance"].sum().to_dict()
-        elevation_by_activity = df.groupby("sport_type")["total_elevation_gain"].sum().to_dict()
-
-        result = []
-        for sport_type in activity_counts.keys():
-            translated_name = TRANSLATE_ACTIVITIES.get(sport_type, sport_type)
-            result.append({
-                "sport_type": translated_name,
-                "sport_type_key": sport_type,
-                "count": activity_counts[sport_type],
-                "elapsed_time": self.format_time(elapsed_time_by_activity.get(sport_type, 0)),
-                "distance": f"{distance_by_activity.get(sport_type, 0) / 1000:.1f}",
-                "elevation": f"{elevation_by_activity.get(sport_type, 0):.1f}",
+        # Agregação única mais eficiente
+        activity_stats = (
+            df.groupby("sport_type")
+            .agg({
+                "sport_type": "count",  # count
+                "elapsed_time": "sum",  # sum
+                "distance": "sum",      # sum
+                "total_elevation_gain": "sum"  # sum
             })
+            .rename(columns={"sport_type": "count"})
+            .reset_index()
+        )
+
+        # Vectorized operations
+        activity_stats["sport_type_translated"] = activity_stats["sport_type"].map(TRANSLATE_ACTIVITIES).fillna(activity_stats["sport_type"])
+        activity_stats["sport_type_key"] = activity_stats["sport_type"]
+        activity_stats["elapsed_time"] = activity_stats["elapsed_time"].apply(self.format_time)
+        activity_stats["distance"] = (activity_stats["distance"] / 1000).round(1).astype(str)
+        activity_stats["elevation"] = activity_stats["total_elevation_gain"].round(1).astype(str)
+
+        # Converter para formato esperado
+        result = activity_stats[[
+            "sport_type_translated", "sport_type_key", "count", 
+            "elapsed_time", "distance", "elevation"
+        ]].rename(columns={"sport_type_translated": "sport_type"}).to_dict("records")
 
         return result
 
@@ -222,6 +239,96 @@ class StatisticsService:
             {"value": st, "label": TRANSLATE_ACTIVITIES.get(st, st)}
             for st in sport_types
         ]
+
+    def get_filtered_activities(self, sport_filter: str = "", week_filter: str = "", 
+                               month_filter: str = "", search_filter: str = "") -> list:
+        """Retorna lista de atividades filtradas"""
+        if self.df.empty:
+            return []
+
+        df = self.df.copy()
+        original_count = len(df)
+        
+        logger.info(f"🔍 DEBUG get_filtered_activities: Original={original_count}, sport='{sport_filter}', week='{week_filter}', month='{month_filter}', search='{search_filter}'")
+        
+        # Aplicar filtros
+        if sport_filter:
+            df = df[df["sport_type"] == sport_filter]
+            logger.info(f"🔍 DEBUG Filtro sport aplicado: {len(df)} atividades")
+        
+        if week_filter:
+            df = df[df["start_date_local"].dt.isocalendar().week == int(week_filter)]
+            logger.info(f"🔍 DEBUG Filtro week aplicado: {len(df)} atividades")
+        
+        if month_filter:
+            df = df[df["start_date_local"].dt.month == int(month_filter)]
+            logger.info(f"🔍 DEBUG Filtro month aplicado: {len(df)} atividades")
+        
+        if search_filter:
+            df = df[df["name"].str.contains(search_filter, case=False, na=False)]
+            logger.info(f"🔍 DEBUG Filtro search aplicado: {len(df)} atividades")
+        
+        logger.info(f"🔍 DEBUG Final: {len(df)} atividades filtradas")
+        
+        # Retornar lista de dicionários brutos (dados originais da API)
+        return df.to_dict("records")
+
+    def get_all_activities_paginated(self, page: int = 1, per_page: int = 50) -> dict:
+        """Retorna atividades paginadas com metadados"""
+        if self.df.empty:
+            return {
+                "activities": [],
+                "current_page": 1,
+                "total_pages": 0,
+                "total_items": 0,
+                "per_page": per_page,
+                "has_next": False,
+                "has_previous": False
+            }
+
+        df = self.df.copy()
+        
+        # Ordenar por data (mais recentes primeiro)
+        df = df.sort_values("start_date_local", ascending=False)
+        
+        total_items = len(df)
+        total_pages = (total_items + per_page - 1) // per_page  # Ceiling division
+        
+        # Calcular offsets
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        
+        # Paginar dados
+        paginated_df = df.iloc[start_idx:end_idx]
+        
+        # Converter para formato do template
+        activities = []
+        for _, row in paginated_df.iterrows():
+            activities.append({
+                "name": row.get("name", ""),
+                "sport_type": TRANSLATE_ACTIVITIES.get(row.get("sport_type", ""), row.get("sport_type", "")),
+                "sport_type_key": row.get("sport_type", ""),
+                "date": row["start_date_local"].strftime("%d/%m/%Y"),
+                "time": row["start_date_local"].strftime("%H:%M"),
+                "distance": f"{row.get('distance', 0) / 1000:.1f}",
+                "distance_raw": round(row.get('distance', 0) / 1000, 1),
+                "elapsed_time": self.format_time(row.get("elapsed_time", 0)),
+                "elapsed_time_seconds": int(row.get("elapsed_time", 0)),
+                "elevation": f"{row.get('total_elevation_gain', 0):.0f}",
+                "elevation_raw": round(row.get('total_elevation_gain', 0), 1),
+                "week": row["start_date_local"].isocalendar().week,
+                "month": row["start_date_local"].month,
+            })
+        
+        return {
+            "activities": activities,
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_items": total_items,
+            "per_page": per_page,
+            "has_next": page < total_pages,
+            "has_previous": page > 1
+        }
 
     def get_all_activities(self) -> list:
         if self.df.empty:

@@ -2,6 +2,12 @@
 
 {% block title %}Dashboard - Strava Stats{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Cache bust: {{ "now"|date:"U" }} */
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-gray-50">
     <!-- Header -->
@@ -37,26 +43,39 @@
             <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
                 <div class="flex flex-wrap items-center gap-4">
                     <span class="text-sm font-medium text-gray-700">Filtros:</span>
-                    <select id="sportFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                        <option value="">Todos os esportes</option>
-                        {% for sport in sport_types %}
-                        <option value="{{ sport.value }}">{{ sport.label }}</option>
-                        {% endfor %}
-                    </select>
-                    <select id="monthFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                        <option value="">Todos os meses</option>
-                        {% for stat in monthly_stats %}
-                        <option value="{{ stat.month_number }}">{{ stat.month }}</option>
-                        {% endfor %}
-                    </select>
-                    <select id="weekFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                        <option value="">Todas as semanas</option>
-                        {% for stat in weekly_stats %}
-                        <option value="{{ stat.week_number }}">{{ stat.week }} ({{ stat.start_date }})</option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" id="searchFilter" onkeyup="applyFilters()" placeholder="Buscar atividade..." 
-                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-48">
+                    <select id="sportFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="">Todos os esportes</option>
+                            {% for sport in sport_types %}
+                            <option value="{{ sport.value }}" {% if current_filters.sport == sport.value %}selected{% endif %}>{{ sport.label }}</option>
+                            {% endfor %}
+                        </select>
+                        
+                        <select id="monthFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="">Todos os meses</option>
+                            <option value="1" {% if current_filters.month == '1' %}selected{% endif %}>Janeiro</option>
+                            <option value="2" {% if current_filters.month == '2' %}selected{% endif %}>Fevereiro</option>
+                            <option value="3" {% if current_filters.month == '3' %}selected{% endif %}>Março</option>
+                            <option value="4" {% if current_filters.month == '4' %}selected{% endif %}>Abril</option>
+                            <option value="5" {% if current_filters.month == '5' %}selected{% endif %}>Maio</option>
+                            <option value="6" {% if current_filters.month == '6' %}selected{% endif %}>Junho</option>
+                            <option value="7" {% if current_filters.month == '7' %}selected{% endif %}>Julho</option>
+                            <option value="8" {% if current_filters.month == '8' %}selected{% endif %}>Agosto</option>
+                            <option value="9" {% if current_filters.month == '9' %}selected{% endif %}>Setembro</option>
+                            <option value="10" {% if current_filters.month == '10' %}selected{% endif %}>Outubro</option>
+                            <option value="11" {% if current_filters.month == '11' %}selected{% endif %}>Novembro</option>
+                            <option value="12" {% if current_filters.month == '12' %}selected{% endif %}>Dezembro</option>
+                        </select>
+                        
+                        <select id="weekFilter" onchange="applyFilters()" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="">Todas as semanas</option>
+                            {% for week in weekly_stats %}
+                                                        <option value="{{ week.week }}" {% if current_filters.week == week.week|stringformat:'s' %}selected{% endif %}>Semana {{ week.week }}</option>
+                            {% endfor %}
+                        </select>
+                        
+                        <input type="text" id="searchFilter" placeholder="Buscar atividades..." 
+                               class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                               value="{{ current_filters.search }}" onkeyup="applyFilters()">
                     <button onclick="clearFilters()" class="px-3 py-2 text-sm text-orange-600 hover:text-orange-800 font-medium">
                         Limpar filtros
                     </button>
@@ -125,8 +144,17 @@
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Elevação</th>
                             </tr>
                         </thead>
+                        <!-- Hidden table with all activities for filtering -->
+<div style="display: none;">
+    {% for activity in all_activities %}
+    <tr class="hover:bg-gray-50 activity-row filter-data" data-sport="{{ activity.sport_type_key }}" data-name="{{ activity.name|lower }}" data-week="{{ activity.week }}" data-month="{{ activity.month }}" data-distance="{{ activity.distance_raw }}" data-time="{{ activity.elapsed_time_seconds }}" data-elevation="{{ activity.elevation_raw }}">
+    </tr>
+    {% endfor %}
+</div>
+
+<!-- Visible table with paginated activities -->
                         <tbody id="activitiesTableBody" class="divide-y divide-gray-100">
-                            {% for activity in all_activities %}
+                            {% for activity in activities_page.activities %}
                             <tr class="hover:bg-gray-50 activity-row" data-sport="{{ activity.sport_type_key }}" data-name="{{ activity.name|lower }}" data-week="{{ activity.week }}" data-month="{{ activity.month }}" data-distance="{{ activity.distance_raw }}" data-time="{{ activity.elapsed_time_seconds }}" data-elevation="{{ activity.elevation_raw }}">
                                 <td class="px-4 py-3 text-sm font-medium text-gray-800">{{ activity.name }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-600">{{ activity.sport_type }}</td>
@@ -145,6 +173,79 @@
                 </div>
             </div>
         </section>
+
+        <!-- Pagination Controls -->
+        {% if activities_page.total_pages > 1 %}
+        <section class="mt-6">
+            <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="text-sm text-gray-600">
+                        Mostrando 
+                        <span class="font-medium">{{ activities_page.activities|length }}</span> 
+                        de 
+                        <span class="font-medium">{{ activities_page.total_items }}</span> 
+                        atividades
+                    </div>
+                    
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Previous -->
+                        {% if activities_page.has_previous %}
+                        <a href="?page={{ activities_page.current_page|add:'-1' }}&per_page={{ activities_page.per_page }}{% if current_filters.sport %}&sport={{ current_filters.sport }}{% endif %}{% if current_filters.week %}&week={{ current_filters.week }}{% endif %}{% if current_filters.month %}&month={{ current_filters.month }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}" 
+                           class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            ← Anterior
+                        </a>
+                        {% else %}
+                        <button disabled class="px-3 py-1 text-sm border border-gray-300 rounded opacity-50 cursor-not-allowed">
+                            ← Anterior
+                        </button>
+                        {% endif %}
+                        
+                        <!-- Page Numbers -->
+                        <div class="flex flex-wrap items-center gap-1">
+                            <!-- Loop usando string como range -->
+                            {% with ''|center:activities_page.total_pages as range %}
+                            {% for _ in range %}
+                                {% with forloop.counter as page_num %}
+                                    {% if page_num == activities_page.current_page %}
+                                    <span class="px-2 py-1 text-xs bg-orange-500 text-white rounded min-w-[2rem] text-center">{{ page_num }}</span>
+                                    {% else %}
+                                    <a href="?page={{ page_num }}&per_page={{ activities_page.per_page }}{% if current_filters.sport %}&sport={{ current_filters.sport }}{% endif %}{% if current_filters.week %}&week={{ current_filters.week }}{% endif %}{% if current_filters.month %}&month={{ current_filters.month }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}" 
+                                       class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 min-w-[2rem] text-center">
+                                        {{ page_num }}
+                                    </a>
+                                    {% endif %}
+                                {% endwith %}
+                            {% endfor %}
+                            {% endwith %}
+                        </div>
+                        
+                        <!-- Next -->
+                        {% if activities_page.has_next %}
+                        <a href="?page={{ activities_page.current_page|add:'1' }}&per_page={{ activities_page.per_page }}{% if current_filters.sport %}&sport={{ current_filters.sport }}{% endif %}{% if current_filters.week %}&week={{ current_filters.week }}{% endif %}{% if current_filters.month %}&month={{ current_filters.month }}{% endif %}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}" 
+                           class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                            Próximo →
+                        </a>
+                        {% else %}
+                        <button disabled class="px-3 py-1 text-sm border border-gray-300 rounded opacity-50 cursor-not-allowed">
+                            Próximo →
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Per Page Selector -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm text-gray-600">Itens por página:</label>
+                        <select onchange="changePerPage(this.value)" 
+                                class="px-2 py-1 text-sm border border-gray-300 rounded">
+                            <option value="25" {% if activities_page.per_page == 25 %}selected{% endif %}>25</option>
+                            <option value="50" {% if activities_page.per_page == 50 %}selected{% endif %}>50</option>
+                            <option value="100" {% if activities_page.per_page == 100 %}selected{% endif %}>100</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
 
         <div class="grid md:grid-cols-2 gap-8 mt-12">
             <!-- Activity Types -->
@@ -319,102 +420,37 @@ function updatePieChart(sportCounts) {
 }
 
 function applyFilters() {
+    console.log('🔍 DEBUG JavaScript: applyFilters() chamado');
     const sportFilter = document.getElementById('sportFilter').value;
     const weekFilter = document.getElementById('weekFilter').value;
     const monthFilter = document.getElementById('monthFilter').value;
     const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
-    const rows = document.querySelectorAll('.activity-row');
-    const activityTypeRows = document.querySelectorAll('.activity-type-row');
+
+    console.log('🔍 DEBUG JavaScript: Filtros=', { sportFilter, weekFilter, monthFilter, searchFilter });
+    console.log('🔍 DEBUG JavaScript: weekFilter type=', typeof weekFilter, 'weekFilter value=', weekFilter);
+
+    // Construir URL com filtros
+    const currentUrl = new URL(window.location);
     
-    let visibleCount = 0;
-    let totalDistance = 0;
-    let totalTime = 0;
-    let totalElevation = 0;
-
-    // Filtrar tabela de atividades
-    rows.forEach(row => {
-        const sport = row.dataset.sport;
-        const week = row.dataset.week;
-        const month = row.dataset.month;
-        const name = row.dataset.name;
-        
-        const matchesSport = !sportFilter || sport === sportFilter;
-        const matchesWeek = !weekFilter || String(week) === String(weekFilter);
-        const matchesMonth = !monthFilter || String(month) === String(monthFilter);
-        const matchesSearch = !searchFilter || name.includes(searchFilter);
-        
-        if (matchesSport && matchesWeek && matchesMonth && matchesSearch) {
-            row.style.display = '';
-            visibleCount++;
-            totalDistance += parseFloat(row.dataset.distance) || 0;
-            totalTime += parseInt(row.dataset.time) || 0;
-            totalElevation += parseFloat(row.dataset.elevation) || 0;
-        } else {
-            row.style.display = 'none';
-        }
-    });
-
-    // Filtrar tabela de tipos de atividade
-    const sportCounts = {};
-    const sportStats = {};
+    // Limpar filtros antigos
+    currentUrl.searchParams.delete('sport');
+    currentUrl.searchParams.delete('week');
+    currentUrl.searchParams.delete('month');
+    currentUrl.searchParams.delete('search');
     
-    rows.forEach(row => {
-        if (row.style.display !== 'none') {
-            const sport = row.dataset.sport;
-            const distance = parseFloat(row.dataset.distance) || 0;
-            const time = parseInt(row.dataset.time) || 0;
-            
-            if (!sportCounts[sport]) {
-                sportCounts[sport] = 0;
-                sportStats[sport] = { count: 0, distance: 0, time: 0 };
-            }
-            
-            sportCounts[sport]++;
-            sportStats[sport].count++;
-            sportStats[sport].distance += distance;
-            sportStats[sport].time += time;
-        }
-    });
-
-    // Atualizar tabela de tipos de atividade
-    activityTypeRows.forEach(row => {
-        const sport = row.dataset.sport;
-        if (sportCounts[sport] > 0) {
-            row.style.display = '';
-            // Atualizar valores na tabela
-            const cells = row.querySelectorAll('td');
-            cells[1].textContent = sportCounts[sport];
-            cells[2].textContent = formatTime(sportStats[sport].time);
-            cells[3].textContent = sportStats[sport].distance.toFixed(1) + ' km';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-
-    // Atualizar gráfico de pizza
-    updatePieChart(sportCounts);
-
-    const hasFilter = sportFilter || weekFilter || monthFilter || searchFilter;
+    // Adicionar filtros novos
+    if (sportFilter) currentUrl.searchParams.set('sport', sportFilter);
+    if (weekFilter) currentUrl.searchParams.set('week', weekFilter);
+    if (monthFilter) currentUrl.searchParams.set('month', monthFilter);
+    if (searchFilter) currentUrl.searchParams.set('search', searchFilter);
     
-    if (hasFilter) {
-        document.getElementById('summaryActivities').textContent = `${visibleCount} / ${totalStats.activities}`;
-        document.getElementById('summaryDistance').textContent = `${totalDistance.toFixed(1)} / ${totalStats.distance} km`;
-        document.getElementById('summaryTime').textContent = `${formatTime(totalTime)} / ${formatTime(totalStats.time)}`;
-        document.getElementById('summaryElevation').textContent = `${Math.round(totalElevation)} / ${Math.round(totalStats.elevation)} m`;
-    } else {
-        document.getElementById('summaryActivities').textContent = totalStats.activities;
-        document.getElementById('summaryDistance').textContent = totalStats.distance + ' km';
-        document.getElementById('summaryTime').textContent = formatTime(totalStats.time);
-        document.getElementById('summaryElevation').textContent = Math.round(totalStats.elevation) + ' m';
-        
-        // Restaurar valores originais da tabela de tipos
-        activityTypeRows.forEach(row => {
-            row.style.display = '';
-        });
-        
-        // Restaurar gráfico original
-        updatePieChart(null);
-    }
+    // Resetar para primeira página
+    currentUrl.searchParams.set('page', '1');
+    
+    console.log('🔍 DEBUG JavaScript: URL final=', currentUrl.toString());
+    
+    // Recarregar página com filtros
+    window.location.href = currentUrl.toString();
 }
 
 function clearFilters() {
@@ -423,6 +459,14 @@ function clearFilters() {
     document.getElementById('monthFilter').value = '';
     document.getElementById('searchFilter').value = '';
     applyFilters();
+}
+
+function changePerPage(perPage) {
+    // Preservar filtros atuais ao mudar itens por página
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('per_page', perPage);
+    currentUrl.searchParams.set('page', '1'); // Resetar para primeira página
+    window.location.href = currentUrl.toString();
 }
 
 document.addEventListener('DOMContentLoaded', function() {

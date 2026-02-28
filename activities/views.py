@@ -94,15 +94,53 @@ def dashboard(request):
 
         stats_service = StatisticsService(activities, user_id)
 
+        # Paginação
+        page = int(request.GET.get("page", 1))
+        per_page = int(request.GET.get("per_page", 50))
+        
+        # Filtros
+        sport_filter = request.GET.get("sport", "")
+        week_filter = request.GET.get("week", "")
+        month_filter = request.GET.get("month", "")
+        search_filter = request.GET.get("search", "")
+        
+        logger.info(f"🔍 DEBUG Filtros recebidos: sport='{sport_filter}', week='{week_filter}', month='{month_filter}', search='{search_filter}'")
+        
+        # Validar página
+        if page < 1:
+            page = 1
+
+        # Aplicar filtros antes da paginação
+        filtered_activities = stats_service.get_filtered_activities(
+            sport_filter, week_filter, month_filter, search_filter
+        )
+        
+        logger.info(f"🔍 DEBUG Atividades filtradas: {len(filtered_activities)} de {len(stats_service.get_all_activities())}")
+        
+        # Criar novo StatisticsService com dados filtrados
+        filtered_stats_service = StatisticsService(filtered_activities, user_id)
+        
+        paginated_activities = filtered_stats_service.get_all_activities_paginated(page, per_page)
+
         context = {
             "athlete_name": request.session.get("athlete_name", "Atleta"),
             "athlete_profile": request.session.get("athlete_profile"),
-            "general_stats": stats_service.get_general_statistics(),
-            "monthly_stats": stats_service.get_monthly_statistics(),
-            "activity_type_stats": stats_service.get_activity_type_statistics(),
-            "weekly_stats": stats_service.get_weekly_statistics(),
-            "sport_types": stats_service.get_sport_types(),
-            "all_activities": stats_service.get_all_activities(),
+            "general_stats": filtered_stats_service.get_general_statistics(),
+            "monthly_stats": filtered_stats_service.get_monthly_statistics(),
+            "activity_type_stats": filtered_stats_service.get_activity_type_statistics(),
+            "weekly_stats": filtered_stats_service.get_weekly_statistics(),
+            "sport_types": stats_service.get_sport_types(),  # Manter todos os esportes para o select
+            # Dados paginados para exibição
+            "activities_page": paginated_activities,
+            # Todas as atividades filtradas para os filtros JavaScript funcionarem
+            "all_activities": filtered_stats_service.get_all_activities(),
+            # Filtros ativos para o template
+            "current_filters": {
+                "sport": sport_filter,
+                "week": week_filter,
+                "month": month_filter,
+                "search": search_filter,
+            }
         }
 
         return render(request, "activities/dashboard.html", context)
